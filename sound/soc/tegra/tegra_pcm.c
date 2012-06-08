@@ -192,6 +192,7 @@ err:
 
 	return ret;
 }
+EXPORT_SYMBOL_GPL(tegra_pcm_allocate);
 
 static int tegra_pcm_close(struct snd_pcm_substream *substream)
 {
@@ -205,6 +206,7 @@ static int tegra_pcm_close(struct snd_pcm_substream *substream)
 
 	return 0;
 }
+EXPORT_SYMBOL_GPL(tegra_pcm_close);
 
 static int tegra_pcm_hw_params(struct snd_pcm_substream *substream,
 				struct snd_pcm_hw_params *params)
@@ -231,6 +233,7 @@ static int tegra_pcm_hw_params(struct snd_pcm_substream *substream,
 
 	return 0;
 }
+EXPORT_SYMBOL_GPL(tegra_pcm_hw_params);
 
 static int tegra_pcm_hw_free(struct snd_pcm_substream *substream)
 {
@@ -238,6 +241,7 @@ static int tegra_pcm_hw_free(struct snd_pcm_substream *substream)
 
 	return 0;
 }
+EXPORT_SYMBOL_GPL(tegra_pcm_hw_free);
 
 static int tegra_pcm_trigger(struct snd_pcm_substream *substream, int cmd)
 {
@@ -278,6 +282,7 @@ static int tegra_pcm_trigger(struct snd_pcm_substream *substream, int cmd)
 
 	return 0;
 }
+EXPORT_SYMBOL_GPL(tegra_pcm_trigger);
 
 static snd_pcm_uframes_t tegra_pcm_pointer(struct snd_pcm_substream *substream)
 {
@@ -291,6 +296,7 @@ static snd_pcm_uframes_t tegra_pcm_pointer(struct snd_pcm_substream *substream)
 	return prtd->period_index * runtime->period_size +
 		bytes_to_frames(runtime, dma_transfer_count);
 }
+EXPORT_SYMBOL_GPL(tegra_pcm_pointer);
 
 static int tegra_pcm_mmap(struct snd_pcm_substream *substream,
 				struct vm_area_struct *vma)
@@ -302,6 +308,7 @@ static int tegra_pcm_mmap(struct snd_pcm_substream *substream,
 					runtime->dma_addr,
 					runtime->dma_bytes);
 }
+EXPORT_SYMBOL_GPL(tegra_pcm_mmap);
 
 static struct snd_pcm_ops tegra_pcm_ops = {
 	.open		= tegra_pcm_open,
@@ -386,12 +393,14 @@ err_free_play:
 err:
 	return ret;
 }
+EXPORT_SYMBOL(tegra_pcm_dma_allocate);
 
 static void tegra_pcm_free(struct snd_pcm *pcm)
 {
 	tegra_pcm_deallocate_dma_buffer(pcm, SNDRV_PCM_STREAM_CAPTURE);
 	tegra_pcm_deallocate_dma_buffer(pcm, SNDRV_PCM_STREAM_PLAYBACK);
 }
+EXPORT_SYMBOL_GPL(tegra_pcm_free);
 
 static int tegra_pcm_probe(struct snd_soc_platform *platform)
 {
