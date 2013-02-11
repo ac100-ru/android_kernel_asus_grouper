@@ -109,12 +109,14 @@ struct cable_info {
 
 static struct cable_info s_cable_info;
 
+#ifdef CONFIG_MACH_GROUPER
 void read_hw_version(void)
 {
 	project_id = grouper_get_project_id();
 	pcb_id_version = grouper_query_pcba_revision();
 	printk(KERN_INFO "%s project_id = %#X, pcb_id = %#X\n", __func__, project_id, pcb_id_version);
 }
+#endif
 
 /* Enable or disable the callback for the battery driver. */
 #define BATTERY_CALLBACK_ENABLED 0
@@ -130,11 +132,13 @@ extern void battery_callback(unsigned cable_status);
 extern void touch_callback(unsigned cable_status);
 #endif
 
+#ifdef CONFIG_CHARGER_SMB347
 static int fsl_charging_mode = 0;
 static int fsl_charging_current = 0;
 static struct delayed_work smb347_hc_mode_work;
 
 extern int smb347_hc_mode_callback(bool enable, int cur);
+#endif
 extern void fsl_wake_lock_timeout(void);
 extern void usb_det_cable_callback(unsigned cable_type);
 
@@ -257,6 +261,7 @@ static const u8 fsl_udc_test_packet[53] = {
 	0xfc, 0x7e, 0xbf, 0xdf, 0xef, 0xf7, 0xfb, 0xfd, 0x7e
 };
 
+#ifdef CONFIG_CHARGER_SMB347
 static void fsl_smb347_hc_mode_handler(struct work_struct *w)
 {
 	smb347_hc_mode_callback(fsl_charging_mode, fsl_charging_current);
@@ -270,6 +275,7 @@ void fsl_smb347_hc_mode_callback_work(int set_mode, int set_current)
 	schedule_delayed_work(&smb347_hc_mode_work, 0*HZ);
 }
 EXPORT_SYMBOL(fsl_smb347_hc_mode_callback_work);
+#endif
 
 static void cable_detection_work_handler(struct work_struct *w)
 {
@@ -329,7 +335,9 @@ static void cable_detection_work_handler(struct work_struct *w)
 		usb_det_cable_callback(s_cable_info.cable_status);
 
 		if ((pcb_id_version <= 0x2) && (project_id == GROUPER_PROJECT_NAKASI)) {
+#ifdef CONFIG_CHARGER_SMB347
 			fsl_smb347_hc_mode_callback_work(1,1);
+#endif
 #if BATTERY_CALLBACK_ENABLED
 			battery_callback(s_cable_info.cable_status);
 #endif
@@ -3309,10 +3317,10 @@ static int __init fsl_udc_probe(struct platform_device *pdev)
 	/* This should done ideally if board does not have pmu interrupt */
 	if (!udc_controller->transceiver)
 		fsl_udc_clk_enable();
-
+#ifdef CONFIG_CHARGER_SMB347
 	if (pcb_id_version <= 0x2)
 		INIT_DELAYED_WORK(&smb347_hc_mode_work, fsl_smb347_hc_mode_handler);
-
+#endif
 	return 0;
 
 err_del_udc:
@@ -3500,7 +3508,9 @@ static int __init udc_init(void)
 {
 	printk(KERN_INFO "%s (%s)\n", driver_desc, DRIVER_VERSION);
 	cable_status_init();
+#ifdef CONFIG_MACH_GROUPER
 	read_hw_version();
+#endif
 	return platform_driver_probe(&udc_driver, fsl_udc_probe);
 }
 
