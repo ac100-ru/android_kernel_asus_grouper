@@ -37,7 +37,9 @@
 #include <mach/pinmux.h>
 #include "fuse.h"
 #include "board-grouper.h"
+#ifdef CONFIG_TEGRA_BB_XMM_POWER
 #include "baseband-xmm-power.h"
+#endif
 
 #define TPS6591X_GPIO_BASE	TEGRA_NR_GPIOS
 #define AC_PRESENT_GPIO		(TPS6591X_GPIO_BASE + TPS6591X_GPIO_GP4)
@@ -2331,7 +2333,9 @@ static int uhsic_phy_power_on(struct tegra_usb_phy *phy, bool is_dpd)
 #endif
 
 	if (uhsic_config->enable_gpio != -1) {
+#ifdef CONFIG_TEGRA_BB_XMM_POWER
 		baseband_xmm_enable_hsic_power(1);
+#endif
 		gpio_set_value_cansleep(uhsic_config->enable_gpio, 1);
 		/* keep hsic reset asserted for 1 ms */
 		udelay(1000);
@@ -2465,7 +2469,9 @@ static int uhsic_phy_power_off(struct tegra_usb_phy *phy, bool is_dpd)
 		gpio_set_value_cansleep(uhsic_config->enable_gpio, 0);
 		/* keep hsic reset de-asserted for 1 ms */
 		udelay(1000);
+#ifdef CONFIG_TEGRA_BB_XMM_POWER
 		baseband_xmm_enable_hsic_power(0);
+#endif
 	}
 	if (uhsic_config->post_phy_off && uhsic_config->post_phy_off())
 		return -EAGAIN;
