@@ -1280,10 +1280,12 @@ static int tegra_ehci_resume(struct platform_device *pdev)
 	struct tegra_ehci_hcd *tegra = platform_get_drvdata(pdev);
 	struct usb_hcd *hcd = ehci_to_hcd(tegra->ehci);
 	int ret;
+#ifdef CONFIG_TEGRA_BB_XMM_POWER
 	u32 project_info = grouper_get_project_id();
 
 	if (project_info == GROUPER_PROJECT_NAKASI_3G)
 		baseband_xmm_L3_resume_check();
+#endif
 
 	mutex_lock(&tegra->tegra_ehci_hcd_mutex);
 	if ((tegra->bus_suspended) && (tegra->power_down_on_bus_suspend)) {
