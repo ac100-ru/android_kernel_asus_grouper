@@ -23,7 +23,9 @@
 #include <linux/usb/otg.h>
 #include <mach/usb_phy.h>
 #include <mach/iomap.h>
+#ifdef CONFIG_TEGRA_BB_XMM_POWER
 #include <mach/board-grouper-misc.h>
+#endif
 
 #define TEGRA_USB_PORTSC_PHCD		(1 << 23)
 
@@ -57,8 +59,10 @@
 #define USB2_PREFETCH_ID               18
 #define USB3_PREFETCH_ID               17
 
+#ifdef CONFIG_TEGRA_BB_XMM_POWER
 extern void baseband_xmm_L3_resume_check(void);
 static struct usb_hcd *modem_ehci_handle;
+#endif
 
 struct tegra_ehci_hcd {
 	struct ehci_hcd *ehci;
@@ -776,6 +780,7 @@ static void tegra_ehci_disable_phy_interrupt(struct usb_hcd *hcd) {
 	}
 }
 
+#ifdef CONFIG_TEGRA_BB_XMM_POWER
 void tegra_usb_suspend_hsic(void)
 {
 	tegra_usb_suspend(modem_ehci_handle ,false);
@@ -787,6 +792,7 @@ void tegra_usb_resume_hsic(void)
 	tegra_usb_resume(modem_ehci_handle ,false);
 }
 EXPORT_SYMBOL(tegra_usb_resume_hsic);
+#endif
 
 static void tegra_ehci_shutdown(struct usb_hcd *hcd)
 {
@@ -1241,9 +1247,11 @@ static int tegra_ehci_probe(struct platform_device *pdev)
 		tegra->irq = 0;
 	}
 
+#ifdef CONFIG_TEGRA_BB_XMM_POWER
 	if (instance == 1) {
 		modem_ehci_handle = hcd;
 	}
+#endif
 
 	return err;
 
@@ -1361,9 +1369,11 @@ static int tegra_ehci_remove(struct platform_device *pdev)
 		otg_put_transceiver(tegra->transceiver);
 	}
 #endif
+#ifdef CONFIG_TEGRA_BB_XMM_POWER
 	if (tegra->phy->instance == 1) {
 		modem_ehci_handle = NULL;
 	}
+#endif
 
 	/* Turn Off Interrupts */
 	ehci_writel(tegra->ehci, 0, &tegra->ehci->regs->intr_enable);
