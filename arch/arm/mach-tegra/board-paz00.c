@@ -319,8 +319,9 @@ static struct tegra_ulpi_config ulpi_phy_config = {
 static struct tegra_ehci_platform_data tegra_ehci_pdata[] = {
 	[0] = {
 			.phy_config = &utmi_phy_config[0],
-			.operating_mode = TEGRA_USB_HOST,
+			.operating_mode = TEGRA_USB_OTG,
 			.power_down_on_bus_suspend = 1,
+			.hotplug = 1,
 			.default_enable = true,
 	},
 	[1] = {
@@ -333,9 +334,29 @@ static struct tegra_ehci_platform_data tegra_ehci_pdata[] = {
 	[2] = {
 			.phy_config = &utmi_phy_config[1],
 			.operating_mode = TEGRA_USB_HOST,
-			.power_down_on_bus_suspend = 0,
+			.power_down_on_bus_suspend = 1,
 			.default_enable = true,
 	},
+};
+
+static struct tegra_otg_platform_data tegra_otg_pdata = {
+        .ehci_device = &tegra_ehci1_device,
+        .ehci_pdata = &tegra_ehci_pdata[0],
+};
+
+static struct usb_phy_plat_data tegra_usb_phy_pdata[] = {
+        [0] = {
+                        .instance = 0,
+                        .vbus_gpio = -1,
+        },
+        [1] = {
+                        .instance = 1,
+                        .vbus_gpio = -1,
+        },
+        [2] = {
+                        .instance = 2,
+                        .vbus_gpio = -1,
+        },
 };
 
 static struct rfkill_gpio_platform_data wifi_rfkill_platform_data = {
@@ -527,7 +548,6 @@ static struct platform_device *paz00_devices[] __initdata = {
 	&tegra_sdhci_device4,
 	&tegra_sdhci_device1,
 	&tegra_pmu_device,
-	&tegra_udc_device,
 	&wifi_rfkill_device,
 	&leds_gpio,
 	&gpio_keys_device,
@@ -557,6 +577,13 @@ static void paz00_i2c_init(void)
 
 static void paz00_usb_init(void)
 {
+	tegra_usb_phy_init(tegra_usb_phy_pdata, ARRAY_SIZE(tegra_usb_phy_pdata));
+        /* OTG should be the first to be registered */
+//        tegra_otg_device.dev.platform_data = &tegra_otg_pdata;
+//        platform_device_register(&tegra_otg_device);
+
+        platform_device_register(&tegra_udc_device);
+
 	tegra_ehci2_device.dev.platform_data = &tegra_ehci_pdata[1];
 	tegra_ehci3_device.dev.platform_data = &tegra_ehci_pdata[2];
 
