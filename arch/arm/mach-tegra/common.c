@@ -47,7 +47,9 @@
 #include "reset.h"
 #include "devices.h"
 
+#ifdef CONFIG_BATTERY_BQ27541
 #define PMC_SCRATCH37                   0x130
+#endif
 
 #define MC_SECURITY_CFG2	0x7c
 
@@ -64,7 +66,10 @@
 #define   RECOVERY_MODE	BIT(31)
 #define   BOOTLOADER_MODE	BIT(30)
 #define   FORCED_RECOVERY_MODE	BIT(1)
+
+#ifdef CONFIG_BATTERY_BQ27541
 #define 	GO_TO_CHARGER_MODE (0xA5A55A5A)
+#endif
 
 #define AHB_GIZMO_USB		0x1c
 #define AHB_GIZMO_USB2		0x78
@@ -138,6 +143,7 @@ void tegra_assert_system_reset(char mode, const char *cmd)
 	}
 	writel_relaxed(reg, reset + PMC_SCRATCH0);
 
+#ifdef CONFIG_BATTERY_BQ27541
 	if (cmd && !strcmp(cmd, "chrager-mode"))
 	{
 		reg = readl_relaxed(reset + PMC_SCRATCH37);
@@ -145,7 +151,7 @@ void tegra_assert_system_reset(char mode, const char *cmd)
 		writel_relaxed(GO_TO_CHARGER_MODE, reset + PMC_SCRATCH37);
 		//printk("tegra_assert_system_reset reg =%x",reg );
 	}
-
+#endif
 	/* use *_related to avoid spinlock since caches are off */
 	reg = readl_relaxed(reset);
 	reg |= 0x10;
