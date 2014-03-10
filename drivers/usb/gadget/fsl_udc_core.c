@@ -140,7 +140,9 @@ static struct delayed_work smb347_hc_mode_work;
 extern int smb347_hc_mode_callback(bool enable, int cur);
 #endif
 extern void fsl_wake_lock_timeout(void);
+#ifdef CONFIG_CHARGER_SMB347
 extern void usb_det_cable_callback(unsigned cable_type);
+#endif
 
 /* Export the function "unsigned int get_usb_cable_status(void)" for others to query the USB cable status. */
 unsigned int get_usb_cable_status(void)
@@ -281,7 +283,9 @@ static void cable_detection_work_handler(struct work_struct *w)
 {
 	mutex_lock(&s_cable_info.cable_info_mutex);
 	s_cable_info.cable_status = 0x00; //0000
+#ifdef CONFIG_BATTERY_BQ27541
 	u32 val;
+#endif
 
 	printk(KERN_INFO "%s(): vbus_active = %d and is_active = %d\n", __func__, s_cable_info.udc_vbus_active, s_cable_info.is_active);
 
@@ -293,7 +297,9 @@ static void cable_detection_work_handler(struct work_struct *w)
 
 		s_cable_info.ac_connected = 0;
 
+#ifdef CONFIG_BATTERY_BQ27541
 		usb_det_cable_callback(s_cable_info.cable_status);
+#endif
 
 		if ((pcb_id_version <= 0x2) && (project_id == GROUPER_PROJECT_NAKASI)) {
 #if BATTERY_CALLBACK_ENABLED
@@ -304,8 +310,10 @@ static void cable_detection_work_handler(struct work_struct *w)
 		touch_callback(s_cable_info.cable_status);
 #endif
 	} else if (!s_cable_info.udc_vbus_active && s_cable_info.is_active) {
+#ifdef CONFIG_BATTERY_BQ27541
 		val = fsl_readl(&dr_regs->usbcmd);
 		if (val & USB_CMD_RUN_STOP) {
+#endif
 			switch (fsl_readl(&dr_regs->portsc1) & PORTSCX_LINE_STATUS_BITS) {
 				case PORTSCX_LINE_STATUS_SE0:
 					s_cable_info.ac_connected = 0; break;
@@ -317,11 +325,13 @@ static void cable_detection_work_handler(struct work_struct *w)
 					s_cable_info.ac_connected = 1; break;
 				default:
 					s_cable_info.ac_connected = 0; break;
+#ifdef CONFIG_BATTERY_BQ27541
 			}
 		} else {
 			printk(KERN_INFO "USB device controller was not ready\n");
 			mutex_unlock(&s_cable_info.cable_info_mutex);
 			return;
+#endif
 		}
 
 		if(!s_cable_info.ac_connected) {
@@ -332,7 +342,9 @@ static void cable_detection_work_handler(struct work_struct *w)
 			s_cable_info.cable_status = 0x03; //0011
 		}
 
+#ifdef CONFIG_BATTERY_BQ27541
 		usb_det_cable_callback(s_cable_info.cable_status);
+#endif
 
 		if ((pcb_id_version <= 0x2) && (project_id == GROUPER_PROJECT_NAKASI)) {
 #ifdef CONFIG_CHARGER_SMB347
