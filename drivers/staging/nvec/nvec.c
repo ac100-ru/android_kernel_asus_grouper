@@ -937,7 +937,12 @@ static struct platform_driver nvec_device_driver = {
 	}
 };
 
-module_platform_driver(nvec_device_driver);
+static int __init tegra_nvec_init(void)
+{
+	return platform_driver_register(&nvec_device_driver);
+}
+
+module_init(tegra_nvec_init);
 
 MODULE_ALIAS("platform:nvec");
 MODULE_DESCRIPTION("NVIDIA compliant embedded controller interface");
