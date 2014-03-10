@@ -112,7 +112,6 @@ static bool modem_sleep_flag;
 static spinlock_t xmm_lock;
 static DEFINE_MUTEX(xmm_onoff_mutex);
 static int modem_reset_flag = 0;
-bool resume_from_l3 = false;
 
 #define MOD_HANG        TEGRA_GPIO_PN2
 
@@ -740,11 +739,9 @@ irqreturn_t baseband_xmm_power_ipc_ap_wake_irq(int irq, void *dev_id)
 							BBXMM_PS_L3TOL0))
 					baseband_xmm_set_power_status(
 							BBXMM_PS_L0);
-				else {
+				else
 					pr_info("%s:no state"
 						"change required\n", __func__);
-					resume_from_l3 = false;
-				}
 			}
 			/* save gpio state */
 			ipc_ap_wake_state = IPC_AP_WAKE_H;
@@ -1296,7 +1293,6 @@ static int baseband_xmm_power_driver_handle_resume(
 	}
 
 	modem_sleep_flag = false;
-	resume_from_l3 = true;
 
 	/* L3->L0 */
 	baseband_xmm_set_power_status(BBXMM_PS_L3TOL0);
