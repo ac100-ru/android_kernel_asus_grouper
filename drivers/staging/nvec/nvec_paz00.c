@@ -11,71 +11,72 @@
  *
  */
 
-#include <linux/err.h>
-#include <linux/leds.h>
 #include <linux/module.h>
+#include <linux/err.h>
 #include <linux/slab.h>
+#include <linux/leds.h>
 #include <linux/platform_device.h>
 #include "nvec.h"
 
+#define to_nvec_led(led_cdev) \
+	container_of(led_cdev, struct nvec_led, cdev)
+
+#define NVEC_LED_REQ {'\x0d', '\x10', '\x45', '\x10', '\x00'}
+
 #define NVEC_LED_MAX 8
 
-enum nvec_oem0_subcmds {
-	EXEC_EC_CMD = 0x10,
-};
-
-enum nvec_oem0_ec_cmds {
-	SET_DEVICE_STATUS = 0x45,
-};
-
-struct nvec_paz00_struct {
+struct nvec_led {
+	struct led_classdev cdev;
 	struct nvec_chip *nvec;
-	struct led_classdev *led_dev;
 };
-
-struct nvec_paz00_struct nvec_paz00;
 
 static void nvec_led_brightness_set(struct led_classdev *led_cdev,
 				    enum led_brightness value)
 {
-	unsigned char buf[] = { NVEC_OEM0, EXEC_EC_CMD, SET_DEVICE_STATUS,
-				'\x10', '\x00' };
-
+	struct nvec_led *led = to_nvec_led(led_cdev);
+	unsigned char buf[] = NVEC_LED_REQ;
 	buf[4] = value;
-	nvec_paz00.led_dev->brightness = value;
-	nvec_write_async(nvec_paz00.nvec, buf, sizeof(buf));
-}
 
-static int paz00_init_leds(struct device *dev)
-{
-	nvec_paz00.led_dev = devm_kzalloc(dev, sizeof(struct led_classdev),
-                               GFP_KERNEL);
-	if (!nvec_paz00.led_dev)
-		return -ENOMEM;
+	nvec_write_async(led->nvec, buf, sizeof(buf));
 
-	nvec_paz00.led_dev->max_brightness = NVEC_LED_MAX;
-	nvec_paz00.led_dev->brightness_set = nvec_led_brightness_set;
-	nvec_paz00.led_dev->brightness = 0;
-	nvec_paz00.led_dev->name = "paz00-led";
-	nvec_paz00.led_dev->flags |= LED_CORE_SUSPENDRESUME;
-
-	return led_classdev_register(dev, nvec_paz00.led_dev);
+	led->cdev.brightness = value;
 }
 
 static int __devinit nvec_paz00_probe(struct platform_device *pdev)
 {
 	struct nvec_chip *nvec = dev_get_drvdata(pdev->dev.parent);
+	struct nvec_led *led;
+	int ret = 0;
 
-	platform_set_drvdata(pdev, &nvec_paz00);
-	nvec_paz00.nvec = nvec;
+	led = devm_kzalloc(&pdev->dev, sizeof(*led), GFP_KERNEL);
+	if (led == NULL)
+		return -ENOMEM;
 
-	return paz00_init_leds(&pdev->dev);
+	led->cdev.max_brightness = NVEC_LED_MAX;
+
+	led->cdev.brightness_set = nvec_led_brightness_set;
+	led->cdev.name = "paz00-led";
+	led->cdev.flags |= LED_CORE_SUSPENDRESUME;
+	led->nvec = nvec;
+
+	platform_set_drvdata(pdev, led);
+
+	ret = led_classdev_register(&pdev->dev, &led->cdev);
+	if (ret < 0)
+		return ret;
+
+	/* to expose the default value to userspace */
+	led->cdev.brightness = 0;
+
+	return 0;
+
 }
 
 static int __devexit nvec_paz00_remove(struct platform_device *pdev)
 {
-	led_classdev_unregister(nvec_paz00.led_dev);
+	struct nvec_led *led = platform_get_drvdata(pdev);
 
+	led_classdev_unregister(&led->cdev);
 	return 0;
 }
 
@@ -87,7 +88,20 @@ static struct platform_driver nvec_paz00_driver = {
 		.owner = THIS_MODULE,
 	},
 };
-module_platform_driver(nvec_paz00_driver);
+
+static int __init nvec_paz00_init(void)
+{
+	return platform_driver_register(&nvec_paz00_driver);
+}
+
+module_init(nvec_paz00_init);
+
+static void __exit nvec_paz00_exit(void)
+{
+	platform_driver_unregister(&nvec_paz00_driver);
+}
+
+module_exit(nvec_paz00_exit);
 
 MODULE_AUTHOR("Ilya Petrov <ilya.muromec@gmail.com>");
 MODULE_DESCRIPTION("Tegra NVEC PAZ00 driver");
