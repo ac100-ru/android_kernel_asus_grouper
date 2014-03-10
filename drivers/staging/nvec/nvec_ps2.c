@@ -130,8 +130,7 @@ static int __devinit nvec_mouse_probe(struct platform_device *pdev)
 	return 0;
 }
 
-#ifdef CONFIG_PM_SLEEP
-static int nvec_mouse_suspend(struct device *dev)
+static int nvec_mouse_suspend(struct platform_device *pdev, pm_message_t state)
 {
 	/* disable mouse */
 	ps2_sendcommand(ps2_dev.ser_dev, DISABLE_MOUSE);
@@ -142,7 +141,7 @@ static int nvec_mouse_suspend(struct device *dev)
 	return 0;
 }
 
-static int nvec_mouse_resume(struct device *dev)
+static int nvec_mouse_resume(struct platform_device *pdev)
 {
 	/* send cancel autoreceive */
 	ps2_startstreaming(ps2_dev.ser_dev);
@@ -152,17 +151,14 @@ static int nvec_mouse_resume(struct device *dev)
 
 	return 0;
 }
-#endif
-
-static const SIMPLE_DEV_PM_OPS(nvec_mouse_pm_ops, nvec_mouse_suspend,
-				nvec_mouse_resume);
 
 static struct platform_driver nvec_mouse_driver = {
 	.probe  = nvec_mouse_probe,
+	.suspend = nvec_mouse_suspend,
+	.resume = nvec_mouse_resume,
 	.driver = {
 		.name = "nvec-mouse",
 		.owner = THIS_MODULE,
-		.pm = &nvec_mouse_pm_ops,
 	},
 };
 module_platform_driver(nvec_mouse_driver);
