@@ -39,6 +39,7 @@
 #include <linux/workqueue.h>
 
 #include <mach/clk.h>
+#include <mach/iomap.h>
 
 #include "nvec.h"
 
@@ -732,10 +733,11 @@ static int __devinit tegra_nvec_probe(struct platform_device *pdev)
 	struct nvec_chip *nvec;
 	struct nvec_msg *msg;
 	struct resource *res;
+	struct resource *iomem;
 	void __iomem *base;
 	char	get_firmware_version[] = { NVEC_CNTL, GET_FIRMWARE_VERSION };
 
-	nvec = devm_kzalloc(&pdev->dev, sizeof(struct nvec_chip), GFP_KERNEL);
+	nvec = kzalloc(sizeof(struct nvec_chip), GFP_KERNEL);
 	if (nvec == NULL) {
 		dev_err(&pdev->dev, "failed to reserve memory\n");
 		return -ENOMEM;
@@ -752,15 +754,15 @@ static int __devinit tegra_nvec_probe(struct platform_device *pdev)
 		nvec->gpio = of_get_named_gpio(nvec->dev->of_node, "request-gpios", 0);
 		if (nvec->gpio < 0) {
 			dev_err(&pdev->dev, "no gpio specified");
-			return -ENODEV;
+			goto failed;
 		}
 		if (of_property_read_u32(nvec->dev->of_node, "slave-addr", &nvec->i2c_addr)) {
 			dev_err(&pdev->dev, "no i2c address specified");
-			return -ENODEV;
+			goto failed;
 		}
 	} else {
 		dev_err(&pdev->dev, "no platform data\n");
-		return -ENODEV;
+		goto failed;
 	}
 
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
@@ -769,7 +771,13 @@ static int __devinit tegra_nvec_probe(struct platform_device *pdev)
 		return -ENODEV;
 	}
 
-	base = devm_request_and_ioremap(&pdev->dev, res);
+	iomem = request_mem_region(res->start, resource_size(res), pdev->name);
+	if (!iomem) {
+		dev_err(&pdev->dev, "I2C region already claimed\n");
+		return -EBUSY;
+	}
+
+	base = ioremap(iomem->start, resource_size(iomem));
 	if (!base) {
 		dev_err(&pdev->dev, "Can't ioremap I2C region\n");
 		return -ENOMEM;
@@ -778,19 +786,30 @@ static int __devinit tegra_nvec_probe(struct platform_device *pdev)
 	res = platform_get_resource(pdev, IORESOURCE_IRQ, 0);
 	if (!res) {
 		dev_err(&pdev->dev, "no irq resource?\n");
-		return -ENODEV;
+		ret = -ENODEV;
+		goto err_iounmap;
 	}
 
 	i2c_clk = clk_get(&pdev->dev, NULL);
 	if (IS_ERR(i2c_clk)) {
-		dev_err(nvec->dev, "failed to get controller clock\n");
-		return PTR_ERR(i2c_clk);
+		dev_err(nvec->dev, "failed to get bus clock\n");
+		ret = PTR_ERR(i2c_clk);
+		goto err_iounmap;
 	}
 
 	nvec->base = base;
 	nvec->irq = res->start;
 	nvec->i2c_clk = i2c_clk;
 	nvec->rx = &nvec->msg_pool[0];
+
+	/* Set the gpio to low when we've got something to say */
+	err = gpio_request(nvec->gpio, "nvec gpio");
+	if (err < 0)
+		dev_err(nvec->dev, "couldn't request gpio\n");
+
+	tegra_gpio_enable(nvec->gpio);
+	gpio_direction_output(nvec->gpio, 1);
+	gpio_set_value(nvec->gpio, 1);
 
 	ATOMIC_INIT_NOTIFIER_HEAD(&nvec->notifier_list);
 
@@ -805,24 +824,14 @@ static int __devinit tegra_nvec_probe(struct platform_device *pdev)
 	INIT_WORK(&nvec->tx_work, nvec_request_master);
 	nvec->wq = alloc_workqueue("nvec", WQ_NON_REENTRANT, 2);
 
-	err = devm_request_irq(&pdev->dev, nvec->irq, nvec_interrupt, 0,
-				"nvec", nvec);
+	err = request_irq(nvec->irq, nvec_interrupt, 0, "nvec", nvec);
 	if (err) {
 		dev_err(nvec->dev, "couldn't request irq\n");
-		destroy_workqueue(nvec->wq);
-		return -ENODEV;
+		goto failed;
 	}
 	disable_irq(nvec->irq);
 
 	tegra_init_i2c_slave(nvec);
-
-	/* Set the gpio to low when we've got something to say */
-	err = gpio_request(nvec->gpio, "nvec gpio");
-	if (err < 0) {
-		dev_err(nvec->dev, "could'nt request gpio\n");
-		destroy_workqueue(nvec->wq);
-		return -ENODEV;
-	}
 
 	gpio_direction_output(nvec->gpio, 1);
 	gpio_set_value(nvec->gpio, 1);
@@ -859,6 +868,12 @@ static int __devinit tegra_nvec_probe(struct platform_device *pdev)
 	}
 
 	return 0;
+
+err_iounmap:
+	iounmap(base);
+failed:
+	kfree(nvec);
+	return -ENOMEM;
 }
 
 static int __devexit tegra_nvec_remove(struct platform_device *pdev)
@@ -867,8 +882,11 @@ static int __devexit tegra_nvec_remove(struct platform_device *pdev)
 
 	nvec_toggle_global_events(nvec, false);
 	mfd_remove_devices(nvec->dev);
-	destroy_workqueue(nvec->wq);
+	free_irq(nvec->irq, &nvec_interrupt);
+	iounmap(nvec->base);
 	gpio_free(nvec->gpio);
+	destroy_workqueue(nvec->wq);
+	kfree(nvec);
 
 	return 0;
 }

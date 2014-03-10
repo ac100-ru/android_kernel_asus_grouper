@@ -375,12 +375,9 @@ static void nvec_power_poll(struct work_struct *work)
 static int __devinit nvec_power_probe(struct platform_device *pdev)
 {
 	struct power_supply *psy;
-	struct nvec_power *power;
+	struct nvec_power *power =
+	    kzalloc(sizeof(struct nvec_power), GFP_NOWAIT);
 	struct nvec_chip *nvec = dev_get_drvdata(pdev->dev.parent);
-
-	power = devm_kzalloc(&pdev->dev, sizeof(struct nvec_power), GFP_NOWAIT);
-	if (power == NULL)
-		return -ENOMEM;
 
 	dev_set_drvdata(&pdev->dev, power);
 	power->nvec = nvec;
@@ -400,6 +397,7 @@ static int __devinit nvec_power_probe(struct platform_device *pdev)
 		power->notifier.notifier_call = nvec_power_bat_notifier;
 		break;
 	default:
+		kfree(power);
 		return -ENODEV;
 	}
 
