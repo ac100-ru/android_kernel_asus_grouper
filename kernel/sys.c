@@ -412,15 +412,19 @@ EXPORT_SYMBOL_GPL(kernel_halt);
  *	Shutdown everything and perform a clean system power_off.
  */
 
+#ifdef CONFIG_MACH_GROUPER
 extern unsigned battery_cable_status;
+#endif
 void kernel_power_off(void)
 {
+#ifdef CONFIG_MACH_GROUPER
 	 if ((battery_cable_status)||(!gpio_get_value(TEGRA_GPIO_PV1))) {
 		char cmd[] = "chrager-mode";
 
 		printk(KERN_EMERG "kernel_power_off: go to charger mode!");
 		kernel_restart(cmd);
 	 }
+#endif
 
 #ifdef CONFIG_ARCH_TEGRA_3x_SOC
 	disable_auto_hotplug();
