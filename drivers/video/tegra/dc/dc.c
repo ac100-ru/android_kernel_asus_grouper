@@ -1140,7 +1140,7 @@ int tegra_dc_update_windows(struct tegra_dc_win *windows[], int n)
 		const bool filter_h = win_use_h_filter(win);
 		const bool filter_v = win_use_v_filter(win);
 
-#if 1
+#ifdef CONFIG_MACH_GROUPER
 		if (win->dc->ndev->id == 0) {
 			invert_h = !invert_h;
 			invert_v = !invert_v;
@@ -1167,7 +1167,11 @@ int tegra_dc_update_windows(struct tegra_dc_win *windows[], int n)
 			update_mask |= WIN_A_ACT_REQ << win->idx;
 
 		if (!WIN_IS_ENABLED(win)) {
+#ifdef CONFIG_MACH_GROUPER
 			tegra_dc_writel(dc, TEGRA_WIN_FLAG_INVERT_H|TEGRA_WIN_FLAG_INVERT_V, DC_WIN_WIN_OPTIONS);
+#else
+                        tegra_dc_writel(dc, 0, DC_WIN_WIN_OPTIONS);
+#endif
 			continue;
 		}
 
