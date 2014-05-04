@@ -1903,6 +1903,12 @@ static int mmc_rescan_try_freq(struct mmc_host *host, unsigned freq)
 		MMC_printk("%s: sdio completed", mmc_hostname(host));
 		return 0;
 	}
+#ifndef CONFIG_MACH_GROUPER
+        if (!mmc_attach_sd(host)) {
+		MMC_printk("%s: sd completed", mmc_hostname(host));
+		return 0;
+	}
+#endif
 	if (!mmc_attach_mmc(host)) {
 		MMC_printk("%s: eMMC completed", mmc_hostname(host));
 		return 0;

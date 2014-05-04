@@ -60,6 +60,9 @@ void mmc_start_host(struct mmc_host *host);
 void mmc_stop_host(struct mmc_host *host);
 
 int mmc_attach_mmc(struct mmc_host *host);
+#ifndef CONFIG_MACH_GROUPER
+int mmc_attach_sd(struct mmc_host *host);
+#endif
 int mmc_attach_sdio(struct mmc_host *host);
 
 /* Module parameters */
