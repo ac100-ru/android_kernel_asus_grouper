@@ -91,10 +91,10 @@ static struct usb_sys_interface *usb_sys_regs;
 /* it is initialized in probe()  */
 static struct fsl_udc *udc_controller = NULL;
 
+#ifdef CONFIG_MACH_GROUPER
 static unsigned int pcb_id_version = 0;
 static unsigned int  project_id = 0;
 
-#ifdef CONFIG_MACH_GROUPER
 struct cable_info {
 	/*
 	* The cable status:
@@ -135,15 +135,17 @@ extern void battery_callback(unsigned cable_status);
 extern void touch_callback(unsigned cable_status);
 #endif
 
+#ifdef CONFIG_MACH_GROUPER
 static int fsl_charging_mode = 0;
 static int fsl_charging_current = 0;
 static struct delayed_work smb347_hc_mode_work;
 
 extern int smb347_hc_mode_callback(bool enable, int cur);
+#endif
 extern void fsl_wake_lock_timeout(void);
+#ifdef CONFIG_MACH_GROUPER
 extern void usb_det_cable_callback(unsigned cable_type);
 
-#ifdef CONFIG_MACH_GROUPER
 /* Export the function "unsigned int get_usb_cable_status(void)" for others to query the USB cable status. */
 unsigned int get_usb_cable_status(void)
 {
@@ -3447,7 +3449,9 @@ static int fsl_udc_resume(struct platform_device *pdev)
 			fsl_udc_clk_suspend(false);
 #ifdef CONFIG_MACH_GROUPER
 			if(s_cable_info.udc_vbus_active == 0 && s_cable_info.is_active == 1) {
+#endif
 				fsl_wake_lock_timeout();
+#ifdef CONFIG_MACH_GROUPER
 				mutex_lock(&s_cable_info.cable_info_mutex);
 				s_cable_info.udc_vbus_active = 1;
 				s_cable_info.is_active = 0;
@@ -3483,7 +3487,9 @@ static int fsl_udc_resume(struct platform_device *pdev)
 
 #ifdef CONFIG_MACH_GROUPER
 	if((s_cable_info.udc_vbus_active == 1 && s_cable_info.is_active == 0) || (s_cable_info.udc_vbus_active == 0 && s_cable_info.is_active == 0)) {
+#endif
 		fsl_wake_lock_timeout();
+#ifdef CONFIG_MACH_GROUPER
 		mutex_lock(&s_cable_info.cable_info_mutex);
 		s_cable_info.udc_vbus_active = 0;
 		s_cable_info.is_active = 1;
