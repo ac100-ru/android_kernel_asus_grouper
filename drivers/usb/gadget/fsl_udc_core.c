@@ -55,7 +55,9 @@
 #include <linux/gpio.h>
 #include <../gpio-names.h>
 #include "fsl_usb2_udc.h"
+#ifdef CONFIG_MACH_GROUPER
 #include <mach/board-grouper-misc.h>
+#endif
 
 #ifdef CONFIG_ARCH_TEGRA
 #define	DRIVER_DESC	"NVidia Tegra High-Speed USB SOC Device Controller driver"
@@ -92,6 +94,7 @@ static struct fsl_udc *udc_controller = NULL;
 static unsigned int pcb_id_version = 0;
 static unsigned int  project_id = 0;
 
+#ifdef CONFIG_MACH_GROUPER
 struct cable_info {
 	/*
 	* The cable status:
@@ -116,11 +119,13 @@ void read_hw_version(void)
 	printk(KERN_INFO "%s project_id = %#X, pcb_id = %#X\n", __func__, project_id, pcb_id_version);
 }
 
+
 /* Enable or disable the callback for the battery driver. */
 #define BATTERY_CALLBACK_ENABLED 1
 
 /* Enable or disable the callback for the battery driver. */
 #define TOUCH_CALLBACK_ENABLED 1
+#endif
 
 #if BATTERY_CALLBACK_ENABLED
 extern void battery_callback(unsigned cable_status);
@@ -138,6 +143,7 @@ extern int smb347_hc_mode_callback(bool enable, int cur);
 extern void fsl_wake_lock_timeout(void);
 extern void usb_det_cable_callback(unsigned cable_type);
 
+#ifdef CONFIG_MACH_GROUPER
 /* Export the function "unsigned int get_usb_cable_status(void)" for others to query the USB cable status. */
 unsigned int get_usb_cable_status(void)
 {
@@ -145,6 +151,7 @@ unsigned int get_usb_cable_status(void)
 	return s_cable_info.cable_status;
 }
 EXPORT_SYMBOL(get_usb_cable_status);
+#endif
 
 #ifdef CONFIG_TEGRA_GADGET_BOOST_CPU_FREQ
 static struct pm_qos_request_list boost_cpu_freq_req;
@@ -271,6 +278,7 @@ void fsl_smb347_hc_mode_callback_work(int set_mode, int set_current)
 }
 EXPORT_SYMBOL(fsl_smb347_hc_mode_callback_work);
 
+#ifdef CONFIG_MACH_GROUPER
 static void cable_detection_work_handler(struct work_struct *w)
 {
 	mutex_lock(&s_cable_info.cable_info_mutex);
@@ -290,13 +298,9 @@ static void cable_detection_work_handler(struct work_struct *w)
 		usb_det_cable_callback(s_cable_info.cable_status);
 
 		if ((pcb_id_version <= 0x2) && (project_id == GROUPER_PROJECT_NAKASI)) {
-#if BATTERY_CALLBACK_ENABLED
 			battery_callback(s_cable_info.cable_status);
-#endif
 		}
-#if TOUCH_CALLBACK_ENABLED
 		touch_callback(s_cable_info.cable_status);
-#endif
 	} else if (!s_cable_info.udc_vbus_active && s_cable_info.is_active) {
 		val = fsl_readl(&dr_regs->usbcmd);
 		if (val & USB_CMD_RUN_STOP) {
@@ -330,13 +334,9 @@ static void cable_detection_work_handler(struct work_struct *w)
 
 		if ((pcb_id_version <= 0x2) && (project_id == GROUPER_PROJECT_NAKASI)) {
 			fsl_smb347_hc_mode_callback_work(1,1);
-#if BATTERY_CALLBACK_ENABLED
 			battery_callback(s_cable_info.cable_status);
-#endif
 		}
-#if TOUCH_CALLBACK_ENABLED
 		touch_callback(s_cable_info.cable_status);
-#endif
 	}
 	mutex_unlock(&s_cable_info.cable_info_mutex);
 }
@@ -350,6 +350,7 @@ static void cable_status_init(void)
 	s_cable_info.ac_connected = 0;
 	INIT_DELAYED_WORK(&s_cable_info.cable_detection_work, cable_detection_work_handler);
 }
+#endif
 
 /********************************************************************
  *	Internal Used Function
@@ -1532,11 +1533,13 @@ static int can_pullup(struct fsl_udc *udc)
 	return udc->driver && udc->softconnect && udc->vbus_active;
 }
 
+#ifdef CONFIG_MACH_GROUPER
 void detect_cable_status(void)
 {
 	schedule_delayed_work(&s_cable_info.cable_detection_work, 1*HZ);
 }
 EXPORT_SYMBOL(detect_cable_status);
+#endif
 
 static int fsl_set_selfpowered(struct usb_gadget * gadget, int is_on)
 {
@@ -1558,11 +1561,13 @@ static int fsl_vbus_session(struct usb_gadget *gadget, int is_active)
 	VDBG("VBUS %s", is_active ? "on" : "off");
 
 	if (udc->transceiver) {
+#ifdef CONFIG_MACH_GROUPER
 		mutex_lock(&s_cable_info.cable_info_mutex);
 		s_cable_info.is_active = is_active;
 		s_cable_info.udc_vbus_active = udc->vbus_active;
 		mutex_unlock(&s_cable_info.cable_info_mutex);
 		printk(KERN_INFO "%s(): vbus_active = %d and  is_active = %d\n", __func__, s_cable_info.udc_vbus_active, s_cable_info.is_active);
+#endif
 		if (udc->vbus_active && !is_active) {
 			/* If cable disconnected, cancel any delayed work */
 			cancel_delayed_work(&udc->work);
@@ -1581,7 +1586,9 @@ static int fsl_vbus_session(struct usb_gadget *gadget, int is_active)
 				regulator_set_current_limit(
 					udc->vbus_regulator, 0, 0);
 			}
+#ifdef CONFIG_MACH_GROUPER
 			schedule_delayed_work(&s_cable_info.cable_detection_work, 0*HZ);
+#endif
 		} else if (!udc->vbus_active && is_active) {
 			fsl_udc_clk_resume(false);
 			/* setup the controller in the device mode */
@@ -1608,7 +1615,9 @@ static int fsl_vbus_session(struct usb_gadget *gadget, int is_active)
 			pm_qos_update_request(&boost_cpu_freq_req,
 				(s32)CONFIG_TEGRA_GADGET_BOOST_CPU_FREQ * 1000);
 #endif
+#ifdef CONFIG_MACH_GROUPER
 			schedule_delayed_work(&s_cable_info.cable_detection_work, 1*HZ);
+#endif
 		}
 
 #ifndef CONFIG_USB_G_ANDROID
@@ -3305,14 +3314,14 @@ static int __init fsl_udc_probe(struct platform_device *pdev)
 		fsl_udc_clk_suspend(false);
 #endif
 #endif
-
+#ifdef CONFIG_MACH_GROUPER
 	/* This should done ideally if board does not have pmu interrupt */
 	if (!udc_controller->transceiver)
 		fsl_udc_clk_enable();
 
 	if (pcb_id_version <= 0x2)
 		INIT_DELAYED_WORK(&smb347_hc_mode_work, fsl_smb347_hc_mode_handler);
-
+#endif
 	return 0;
 
 err_del_udc:
@@ -3436,6 +3445,7 @@ static int fsl_udc_resume(struct platform_device *pdev)
 		if (!(fsl_readl(&usb_sys_regs->vbus_wakeup) & USB_SYS_VBUS_STATUS)) {
 			/* if there is no VBUS then power down the clocks and return */
 			fsl_udc_clk_suspend(false);
+#ifdef CONFIG_MACH_GROUPER
 			if(s_cable_info.udc_vbus_active == 0 && s_cable_info.is_active == 1) {
 				fsl_wake_lock_timeout();
 				mutex_lock(&s_cable_info.cable_info_mutex);
@@ -3444,6 +3454,7 @@ static int fsl_udc_resume(struct platform_device *pdev)
 				mutex_unlock(&s_cable_info.cable_info_mutex);
 				schedule_delayed_work(&s_cable_info.cable_detection_work, 0*HZ);
 			}
+#endif
 			return 0;
 		} else {
 			fsl_udc_clk_suspend(false);
@@ -3470,6 +3481,7 @@ static int fsl_udc_resume(struct platform_device *pdev)
 	if (!(fsl_readl(&usb_sys_regs->vbus_wakeup) & USB_SYS_VBUS_STATUS))
 		fsl_udc_clk_suspend(false);
 
+#ifdef CONFIG_MACH_GROUPER
 	if((s_cable_info.udc_vbus_active == 1 && s_cable_info.is_active == 0) || (s_cable_info.udc_vbus_active == 0 && s_cable_info.is_active == 0)) {
 		fsl_wake_lock_timeout();
 		mutex_lock(&s_cable_info.cable_info_mutex);
@@ -3478,6 +3490,7 @@ static int fsl_udc_resume(struct platform_device *pdev)
 		mutex_unlock(&s_cable_info.cable_info_mutex);
 		schedule_delayed_work(&s_cable_info.cable_detection_work, 0*HZ);
 	}
+#endif
 	return 0;
 }
 
@@ -3499,8 +3512,10 @@ static struct platform_driver udc_driver = {
 static int __init udc_init(void)
 {
 	printk(KERN_INFO "%s (%s)\n", driver_desc, DRIVER_VERSION);
+#ifdef CONFIG_MACH_GROUPER
 	cable_status_init();
 	read_hw_version();
+#endif
 	return platform_driver_probe(&udc_driver, fsl_udc_probe);
 }
 
