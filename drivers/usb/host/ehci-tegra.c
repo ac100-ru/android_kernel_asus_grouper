@@ -23,7 +23,9 @@
 #include <linux/usb/otg.h>
 #include <mach/usb_phy.h>
 #include <mach/iomap.h>
+#ifdef CONFIG_MACH_GROUPER
 #include <mach/board-grouper-misc.h>
+#endif
 
 #define TEGRA_USB_PORTSC_PHCD		(1 << 23)
 
@@ -57,8 +59,10 @@
 #define USB2_PREFETCH_ID               18
 #define USB3_PREFETCH_ID               17
 
+#ifdef CONFIG_MACH_GROUPER
 extern void baseband_xmm_L3_resume_check(void);
 static struct usb_hcd *modem_ehci_handle;
+#endif
 
 struct tegra_ehci_hcd {
 	struct ehci_hcd *ehci;
@@ -82,12 +86,14 @@ struct tegra_ehci_hcd {
 	bool bus_suspended_fail;
 };
 
+#ifdef CONFIG_MACH_GROUPER
 int use_hsic_controller(struct usb_hcd *hcd)
 {
 	struct tegra_ehci_hcd *tegra = dev_get_drvdata(hcd->self.controller);
 	return (tegra->phy->usb_phy_type == TEGRA_USB_PHY_TYPE_HSIC);
 }
 EXPORT_SYMBOL(use_hsic_controller);
+#endif
 
 static void tegra_ehci_power_up(struct usb_hcd *hcd, bool is_dpd)
 {
@@ -217,18 +223,24 @@ static irqreturn_t tegra_ehci_irq (struct usb_hcd *hcd)
 			val &= ~(TEGRA_USB_PORTSC1_WKCN | PORT_RWC_BITS);
 			writel(val , (hcd->regs + TEGRA_USB_PORTSC1_OFFSET));
 		}
+#ifdef CONFIG_MACH_GROUPER
 		else if (tegra->bus_suspended &&
 				tegra->port_speed > TEGRA_USB_PHY_PORT_SPEED_HIGH) {
 			printk("%s: no device connected before suspend\n", __func__);
 			spin_unlock(&ehci->lock);
 			return 0;
 		}
+#endif
 		spin_unlock(&ehci->lock);
 	}
 
 	irq_status = ehci_irq(hcd);
 
+#ifdef CONFIG_MACH_GROUPER
 	if (pmc_remote_wakeup || tegra->phy->usb_phy_type == TEGRA_USB_PHY_TYPE_HSIC) {
+#else
+        if (pmc_remote_wakeup) {
+#endif
 		ehci->controller_remote_wakeup = false;
 	}
 
@@ -776,6 +788,7 @@ static void tegra_ehci_disable_phy_interrupt(struct usb_hcd *hcd) {
 	}
 }
 
+#ifdef CONFIG_MACH_GROUPER
 void tegra_usb_suspend_hsic(void)
 {
 	tegra_usb_suspend(modem_ehci_handle ,false);
@@ -787,6 +800,7 @@ void tegra_usb_resume_hsic(void)
 	tegra_usb_resume(modem_ehci_handle ,false);
 }
 EXPORT_SYMBOL(tegra_usb_resume_hsic);
+#endif
 
 static void tegra_ehci_shutdown(struct usb_hcd *hcd)
 {
@@ -1241,9 +1255,11 @@ static int tegra_ehci_probe(struct platform_device *pdev)
 		tegra->irq = 0;
 	}
 
+#ifdef CONFIG_MACH_GROUPER
 	if (instance == 1) {
 		modem_ehci_handle = hcd;
 	}
+#endif
 
 	return err;
 
@@ -1359,9 +1375,11 @@ static int tegra_ehci_remove(struct platform_device *pdev)
 		otg_put_transceiver(tegra->transceiver);
 	}
 #endif
+#ifdef CONFIG_MACH_GROUPER
 	if (tegra->phy->instance == 1) {
 		modem_ehci_handle = NULL;
 	}
+#endif
 
 	/* Turn Off Interrupts */
 	ehci_writel(tegra->ehci, 0, &tegra->ehci->regs->intr_enable);
@@ -1371,7 +1389,9 @@ static int tegra_ehci_remove(struct platform_device *pdev)
 	usb_remove_hcd(hcd);
 	usb_put_hcd(hcd);
 	tegra_usb_phy_power_off(tegra->phy, true);
+#ifdef CONFIG_MACH_GROUPER
 	tegra_ehci_disable_phy_interrupt(hcd);
+#endif
 	tegra_usb_phy_close(tegra->phy);
 	iounmap(hcd->regs);
 
