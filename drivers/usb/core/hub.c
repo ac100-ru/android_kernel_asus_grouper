@@ -37,8 +37,10 @@
 #endif
 #endif
 
+#ifdef CONFIG_MACH_GROUPER
 extern int use_hsic_controller(struct usb_hcd *hcd);
 extern bool resume_from_l3;
+#endif
 
 struct usb_hub {
 	struct device		*intfdev;	/* the "interface" device */
@@ -858,6 +860,7 @@ static void hub_activate(struct usb_hub *hub, enum hub_activation_type type)
 		}
 	}
 
+#ifdef CONFIG_MACH_GROUPER
 	/* Override the debunce delay since we have to reset-resume
 	 * for modem L3 state.
 	 */
@@ -865,6 +868,7 @@ static void hub_activate(struct usb_hub *hub, enum hub_activation_type type)
 	{
 		need_debounce_delay = false;
 	}
+#endif
 
 	/* If no port-status-change flags were set, we don't need any
 	 * debouncing.  If flags were set we can try to debounce the
@@ -884,7 +888,7 @@ static void hub_activate(struct usb_hub *hub, enum hub_activation_type type)
 					msecs_to_jiffies(delay));
 			return;		/* Continues at init3: below */
 		} else {
-				msleep(delay);
+			msleep(delay);
 		}
 	}
  init3:
@@ -2056,11 +2060,13 @@ static int hub_port_wait_reset(struct usb_hub *hub, int port1,
 	int delay_time, ret;
 	u16 portstatus;
 	u16 portchange;
+#ifdef CONFIG_MACH_GROUPER
 	struct usb_device *hdev = hub->hdev;
 	struct usb_hcd *hcd = bus_to_hcd(hdev->bus);
 
 	if (resume_from_l3 == true && use_hsic_controller(hcd) == 1)
 		delay = 1;
+#endif
 
 	for (delay_time = 0;
 			delay_time < HUB_RESET_TIMEOUT;
@@ -2141,11 +2147,15 @@ static int hub_port_reset(struct usb_hub *hub, int port1,
 		switch (status) {
 		case 0:
 			/* TRSTRCY = 10 ms; plus some extra */
+#ifdef CONFIG_MACH_GROUPER
 			if (resume_from_l3 == true && use_hsic_controller(hcd) == 1) {
 				msleep(10);
 			} else{
+#endif
 				msleep(10 + 40);
+#ifdef CONFIG_MACH_GROUPER
 			}
+#endif
 			update_devnum(udev, 0);
 			if (hcd->driver->reset_device) {
 				status = hcd->driver->reset_device(hcd, udev);
