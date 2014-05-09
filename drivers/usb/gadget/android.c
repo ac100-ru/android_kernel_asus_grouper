@@ -1015,9 +1015,7 @@ static ssize_t enable_store(struct device *pdev, struct device_attribute *attr,
 		list_for_each_entry(f, &dev->enabled_functions, enabled_list) {
 			if (f->enable)
 				f->enable(f);
-#ifdef CONFIG_MACH_GROUPER
 		}
-#endif
 		android_enable(dev);
 		dev->enabled = true;
 #ifdef CONFIG_MACH_GROUPER
