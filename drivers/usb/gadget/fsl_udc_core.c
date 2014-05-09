@@ -266,6 +266,7 @@ static const u8 fsl_udc_test_packet[53] = {
 	0xfc, 0x7e, 0xbf, 0xdf, 0xef, 0xf7, 0xfb, 0xfd, 0x7e
 };
 
+#ifdef CONFIG_MACH_GROUPER
 static void fsl_smb347_hc_mode_handler(struct work_struct *w)
 {
 	smb347_hc_mode_callback(fsl_charging_mode, fsl_charging_current);
@@ -279,6 +280,7 @@ void fsl_smb347_hc_mode_callback_work(int set_mode, int set_current)
 	schedule_delayed_work(&smb347_hc_mode_work, 0*HZ);
 }
 EXPORT_SYMBOL(fsl_smb347_hc_mode_callback_work);
+#endif
 
 #ifdef CONFIG_MACH_GROUPER
 static void cable_detection_work_handler(struct work_struct *w)
