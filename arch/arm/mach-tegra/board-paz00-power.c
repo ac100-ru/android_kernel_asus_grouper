@@ -218,12 +218,13 @@ static struct tegra_suspend_platform_data paz00_suspend_data = {
 	 * for appropriate settings.
 	 */
 	.cpu_timer	= 2000,
-	.cpu_off_timer	= 0,
+	.cpu_off_timer	= 200,
 	.suspend_mode	= TEGRA_SUSPEND_LP0,
 	.core_timer	= 0x7e7e,
-	.core_off_timer = 0x7f,
-	.corereq_high	= false,
+	.core_off_timer = 0,
+	.corereq_high	= true,
 	.sysclkreq_high	= true,
+        .cpu_lp2_min_residency = 2000,
 	.board_suspend = paz00_board_suspend,
 	.board_resume = paz00_board_resume,
 };
@@ -246,7 +247,7 @@ int __init paz00_regulator_init(void)
 
 	i2c_register_board_info(4, paz00_regulators, 1);
 
-	regulator_has_full_constraints();
+	//regulator_has_full_constraints();
 
 	return 0;
 }
