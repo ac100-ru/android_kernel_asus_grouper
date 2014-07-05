@@ -751,10 +751,9 @@ static int __devinit tegra_nvec_probe(struct platform_device *pdev)
 	char	get_firmware_version[] = { NVEC_CNTL, GET_FIRMWARE_VERSION };
 
 	nvec = devm_kzalloc(&pdev->dev, sizeof(struct nvec_chip), GFP_KERNEL);
-	if (nvec == NULL) {
-		dev_err(&pdev->dev, "failed to reserve memory\n");
+	if (nvec == NULL)
 		return -ENOMEM;
-	}
+
 	platform_set_drvdata(pdev, nvec);
 	nvec->dev = &pdev->dev;
 
