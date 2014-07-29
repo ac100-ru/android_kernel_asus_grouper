@@ -789,8 +789,8 @@ static int __devinit tegra_nvec_probe(struct platform_device *pdev)
 		return -ENOMEM;
 	}
 
-	res = platform_get_resource(pdev, IORESOURCE_IRQ, 0);
-	if (!res) {
+	nvec->irq = platform_get_irq(pdev, 0);
+	if (nvec->irq < 0) {
 		dev_err(&pdev->dev, "no irq resource?\n");
 		return -ENODEV;
 	}
@@ -802,7 +802,6 @@ static int __devinit tegra_nvec_probe(struct platform_device *pdev)
 	}
 
 	nvec->base = base;
-	nvec->irq = res->start;
 	nvec->i2c_clk = i2c_clk;
 	nvec->rx = &nvec->msg_pool[0];
 
