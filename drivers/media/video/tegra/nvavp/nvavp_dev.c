@@ -259,7 +259,7 @@ static int nvavp_reset_avp(struct nvavp_info *nvavp, unsigned long reset_addr)
 	unsigned long stub_code_phys = virt_to_phys(_tegra_avp_boot_stub);
 	dma_addr_t stub_data_phys;
 
-	_tegra_avp_boot_stub_data.map_phys_addr = avp->kernel_phys;
+	_tegra_avp_boot_stub_data.map_phys_addr = nvavp->os_info.phys;
 	_tegra_avp_boot_stub_data.jump_addr = reset_addr;
 	wmb();
 	stub_data_phys = dma_map_single(NULL, &_tegra_avp_boot_stub_data,
