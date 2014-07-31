@@ -729,7 +729,7 @@ static int nvavp_init(struct nvavp_info *nvavp)
 	/* vaddr is AVP_KERNEL_VIRT_BASE */
 	dev_info(&nvavp->nvhost_dev->dev,
 		"using AVP MMU to relocate AVP os\n");
-	sprintf(fw_os_file, "nvavp_os.bin");
+	sprintf(fw_os_file, "nvrm_avp.bin");
 	nvavp->os_info.reset_addr = AVP_KERNEL_VIRT_BASE;
 #elif defined(CONFIG_TEGRA_AVP_KERNEL_ON_SMMU) /* Tegra3 with SMMU */
 	/* paddr is any address behind SMMU */
