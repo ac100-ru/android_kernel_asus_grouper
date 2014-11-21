@@ -47,10 +47,14 @@
 /* Audio */
 #define TEGRA_HP_DET		TEGRA_GPIO_PW2
 
+/* Modem */
+#define TEGRA_W_DISABLE		TEGRA_GPIO_PV4
+
 void paz00_pinmux_init(void);
 void paz00_panel_init(void);
 int paz00_regulator_init(void);
 int paz00_suspend_init(void);
 void paz00_emc_init(void);
+int paz00_gsm_pm_register_devices(void);
 
 #endif

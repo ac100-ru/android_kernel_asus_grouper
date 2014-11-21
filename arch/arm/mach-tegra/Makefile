@@ -119,6 +119,8 @@ obj-${CONFIG_MACH_PAZ00}                += board-paz00-pinmux.o
 obj-${CONFIG_MACH_PAZ00}                += board-paz00-power.o
 obj-${CONFIG_MACH_PAZ00}                += board-paz00-panel.o
 obj-${CONFIG_MACH_PAZ00}                += board-paz00-memory.o
+obj-${CONFIG_MACH_PAZ00}                += board-paz00-gsm.o
+obj-${CONFIG_MACH_PAZ00}                += board-paz00-pm-gsm.o
 
 obj-${CONFIG_MACH_SEABOARD}             += board-seaboard.o
 obj-${CONFIG_MACH_SEABOARD}             += board-seaboard-pinmux.o
